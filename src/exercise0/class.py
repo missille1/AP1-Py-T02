@@ -38,7 +38,7 @@ class Examiner:
         self.current_student = "-"
 
     def __repr__(self):
-        return f"Examiner({self.name}, {self.gender})"
+        return f"Examiner({self.name}, {self.gender})"    
     
     def choose_question(self, question):
         words = question.get_words()
@@ -58,6 +58,9 @@ class Examiner:
             else: 
                     flag = False
         return all_correct_answer
+    
+    def evaluate(student_answer, correct_answers):
+        
 
 class Question:
     def __init__(self, text):
@@ -99,6 +102,8 @@ for n in students:
 for n in examiners:
     all_correct_answer = n.choose_question(random.sample(questions, 1)[0])
     print(all_correct_answer)
+
+
 
 # for e in examiners:
 #     print(e)
