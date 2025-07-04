@@ -18,14 +18,14 @@ class Student():
             weight = remaining / z
             weight_bd.append(weight)
             remaining = remaining - weight
-        print(sum(weight_bd))
+        # print(sum(weight_bd))
         if len(weight_bd) == len(words):
             if self.gender == 'М':
                 save_word = random.choices(words, weight_bd)
             else:
-                print('girl')
+                # print('girl')
                 save_word = random.choices(words, (reversed(weight_bd)))
-        print(save_word)
+        # print(save_word)
         return save_word
 
 class Examiner:
@@ -59,8 +59,26 @@ class Examiner:
                     flag = False
         return all_correct_answer
     
-    def evaluate(student_answer, correct_answers):
-        
+    def evaluate(self, student_answer, correct_answers):
+        mood = random.random()
+        ex_passed = True
+        if mood <= 1/8:
+             ex_passed = False
+        if mood >= 1/8 and mood <= 5/8:
+            correct = 0
+            wrong = 0
+            for student_word, correct_list in zip(student_answer, correct_answers):
+                if student_word in correct_list:
+                    correct += 1
+                else:
+                    wrong += 1
+            if correct >= wrong:
+                pass
+            else:
+                ex_passed = False
+        else: 
+             ex_passed = True
+        return ex_passed
 
 class Question:
     def __init__(self, text):
@@ -94,15 +112,52 @@ examiners = read_examiners("examiners.txt")
 students = read_students("students.txt")
 questions = read_questions("questions.txt")
 
+
+exam_questions = random.sample(questions, 3)
 # students[0].choose_answer(questions[0])
+# for n in students:
+#     student_answers = []
+#     for q in exam_questions:
+#         answer = n.choose_answer(q)[0]
+#         # student_answer = n.choose_answer(random.sample(questions, 3)[1 - 4])
+#         student_answers.append(answer)
+#     print(student_answers)
 
-for n in students:
-    n.choose_answer(random.sample(questions, 1)[0])
+# print("----------------------------------------------------")
 
-for n in examiners:
-    all_correct_answer = n.choose_question(random.sample(questions, 1)[0])
-    print(all_correct_answer)
+# for n in examiners:
+#     correct_answers = []
+#     for q in exam_questions:
+#         # student_answer = n.choose_answer(random.sample(questions, 3)[1 - 4])
+#         correct_answers.append(n.choose_question(q))
+#     print(correct_answers)
 
+# for n in examiners:
+#     correct_answerS = []
+#     correct_answers = n.choose_question(random.sample(questions, 3)[0])
+#     correct_answerS.append(correct_answers)
+#     print('------------Examiner----------------')
+# print(correct_answerS)
+
+print("--------------------FULLL---------------------")
+
+for s, e in zip(students, examiners):
+    student_answer = []
+    correct_answers = []
+    for q in exam_questions:
+        answer = s.choose_answer(q)[0]
+        student_answer.append(answer)
+        correct_answers.append(e.choose_question(q))
+    ex_passed = e.evaluate(student_answer, correct_answers)
+    print(student_answer)
+    print(correct_answers)
+    print(ex_passed)
+
+# start_time = time.time()
+
+# for n in evaluate:
+#     ex_passed = n.evaluate(student_answers, correct_answers)
+#     print(ex_passed)
 
 
 # for e in examiners:
