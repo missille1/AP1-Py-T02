@@ -1,4 +1,8 @@
 import random
+import time
+from queue import Queue 
+from queue import Empty
+import threading
 
 class Student():
     def __init__(self, name, gender, status="Очередь"):
@@ -36,6 +40,7 @@ class Examiner:
         self.failed = 0
         self.work_time = 0.0
         self.current_student = "-"
+        self.on_lunch = False
 
     def __repr__(self):
         return f"Examiner({self.name}, {self.gender})"    
@@ -59,7 +64,7 @@ class Examiner:
                     flag = False
         return all_correct_answer
     
-    def evaluate(self, student_answer, correct_answers):
+    def evaluate(self, student_answer, correct_answers): # evaluate - оценивать
         mood = random.random()
         ex_passed = True
         if mood <= 1/8:
@@ -79,6 +84,32 @@ class Examiner:
         else: 
              ex_passed = True
         return ex_passed
+    
+    def run_exam(self, student_queue: Queue, start_time: float):
+        done = False
+        while not done:
+            if student_queue.empty():
+                done = True
+            else:
+                student = student_queue.get_nowait()
+                elapsed = time.time() - start_time
+                if not self.on_lunch and elapsed > 30:
+                    self.on_lunch = True
+                    print(f"{self.name} уходит на обед...")
+                    time.sleep(random.uniform(12, 18))
+                student_answer = []
+                correct_answers = []
+                for q in exam_questions:
+                    answer = student.choose_answer(q)[0]
+                    student_answer.append(answer)
+                    correct_answers.append(self.choose_question(q))
+                ex_passed = self.evaluate(student_answer, correct_answers)
+                duration = random.uniform(5, 7) + len(self.name)
+                time.sleep(duration)
+                print(student_answer)
+                print(correct_answers)
+                print(ex_passed)
+                print(f"{self.name} закончил экзамен с {student.name}") 
 
 class Question:
     def __init__(self, text):
@@ -112,59 +143,20 @@ examiners = read_examiners("examiners.txt")
 students = read_students("students.txt")
 questions = read_questions("questions.txt")
 
+start_time = time.time()
 
 exam_questions = random.sample(questions, 3)
-# students[0].choose_answer(questions[0])
-# for n in students:
-#     student_answers = []
-#     for q in exam_questions:
-#         answer = n.choose_answer(q)[0]
-#         # student_answer = n.choose_answer(random.sample(questions, 3)[1 - 4])
-#         student_answers.append(answer)
-#     print(student_answers)
-
-# print("----------------------------------------------------")
-
-# for n in examiners:
-#     correct_answers = []
-#     for q in exam_questions:
-#         # student_answer = n.choose_answer(random.sample(questions, 3)[1 - 4])
-#         correct_answers.append(n.choose_question(q))
-#     print(correct_answers)
-
-# for n in examiners:
-#     correct_answerS = []
-#     correct_answers = n.choose_question(random.sample(questions, 3)[0])
-#     correct_answerS.append(correct_answers)
-#     print('------------Examiner----------------')
-# print(correct_answerS)
 
 print("--------------------FULLL---------------------")
+student_queue = Queue()
+for s in students:
+    student_queue.put(s)
 
-for s, e in zip(students, examiners):
-    student_answer = []
-    correct_answers = []
-    for q in exam_questions:
-        answer = s.choose_answer(q)[0]
-        student_answer.append(answer)
-        correct_answers.append(e.choose_question(q))
-    ex_passed = e.evaluate(student_answer, correct_answers)
-    print(student_answer)
-    print(correct_answers)
-    print(ex_passed)
+threads = []
+for e in examiners:
+    t = threading.Thread(target = e.run_exam, args=(student_queue, start_time))
+    t.start()
+    threads.append(t)
 
-# start_time = time.time()
-
-# for n in evaluate:
-#     ex_passed = n.evaluate(student_answers, correct_answers)
-#     print(ex_passed)
-
-
-# for e in examiners:
-#     print(e)
-
-# for s in students:
-#     print(s)
-
-# for q in questions:
-#     print(q)
+for t in threads:
+    t.join()
