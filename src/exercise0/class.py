@@ -9,6 +9,8 @@ class Student():
         self.name = name
         self.gender = gender
         self.status = status
+        self.exam_time = 0.0
+        self.status = "Очередь"
 
     def __repr__(self):
         return f"Students({self.name}, {self.gender})"
@@ -23,12 +25,11 @@ class Student():
             weight_bd.append(weight)
             remaining = remaining - weight
         # print(sum(weight_bd))
-        if len(weight_bd) == len(words):
-            if self.gender == 'М':
-                save_word = random.choices(words, weight_bd)
-            else:
-                # print('girl')
-                save_word = random.choices(words, (reversed(weight_bd)))
+        if self.gender == 'М':
+            save_word = random.choices(words, weight_bd)
+        else:
+            # print('girl')
+            save_word = random.choices(words, list(reversed(weight_bd)))
         # print(save_word)
         return save_word
 
@@ -88,28 +89,86 @@ class Examiner:
     def run_exam(self, student_queue: Queue, start_time: float):
         done = False
         while not done:
-            if student_queue.empty():
-                done = True
-            else:
+            student = None
+            LOCK.acquire()
+            if not student_queue.empty():
                 student = student_queue.get_nowait()
+            LOCK.release()
+            done = student is None
+
+            if not done and student:
                 elapsed = time.time() - start_time
+
                 if not self.on_lunch and elapsed > 30:
                     self.on_lunch = True
                     print(f"{self.name} уходит на обед...")
                     time.sleep(random.uniform(12, 18))
+
+                start_exam = time.time()
+
                 student_answer = []
                 correct_answers = []
                 for q in exam_questions:
                     answer = student.choose_answer(q)[0]
                     student_answer.append(answer)
                     correct_answers.append(self.choose_question(q))
-                ex_passed = self.evaluate(student_answer, correct_answers)
-                duration = random.uniform(5, 7) + len(self.name)
+                l = len(self.name)
+                duration = random.uniform(l - 1, l + 1)
                 time.sleep(duration)
+
+                ex_passed = self.evaluate(student_answer, correct_answers)
+
+                exam_time = time.time() - start_exam
+                student.exam_time = exam_time
+                student.status = "Сдал" if ex_passed else "Провалил"
+                self.work_time += exam_time
+
                 print(student_answer)
                 print(correct_answers)
                 print(ex_passed)
-                print(f"{self.name} закончил экзамен с {student.name}") 
+                print(f"{self.name} закончил экзамен с {student.name}")
+
+                self.students_handled += 1
+                if not ex_passed:
+                    self.failed += 1
+
+
+    # def run_exam(self, student_queue: Queue, start_time: float):
+    #     done = False
+    #     while not done:
+    #         student = None
+    #         LOCK.acquire()
+    #         if not student_queue.empty():
+    #             student = student_queue.get_nowait()
+    #         LOCK.release()
+    #         done = student is None
+    #         start_exam = time.time()
+    #         if not done and student:
+    #             elapsed = time.time() - start_time
+    #             if not self.on_lunch and elapsed > 30:
+    #                 self.on_lunch = True
+    #                 print(f"{self.name} уходит на обед...")
+    #                 time.sleep(random.uniform(12, 18))
+    #             student_answer = []
+    #             correct_answers = []
+    #             for q in exam_questions:
+    #                 answer = student.choose_answer(q)[0]
+    #                 student_answer.append(answer)
+    #                 correct_answers.append(self.choose_question(q))
+    #                 exam_time = time.time() - start_exam
+    #                 self.work_time += exam_time
+    #             ex_passed = self.evaluate(student_answer, correct_answers)
+    #             # duration = random.uniform(5, 7) + len(self.name)
+    #             duration = random.uniform(5, 7) * (1 + len(e.name)/10)
+    #             time.sleep(duration)
+    #             print(student_answer)
+    #             print(correct_answers)
+    #             print(ex_passed)
+    #             print(f"{self.name} закончил экзамен с {student.name}")
+    #             self.students_handled += 1
+    #             if not ex_passed:
+    #                 self.failed += 1
+    #             self.work_time += duration 
 
 class Question:
     def __init__(self, text):
@@ -142,8 +201,8 @@ def read_questions(path):
 examiners = read_examiners("examiners.txt")
 students = read_students("students.txt")
 questions = read_questions("questions.txt")
-
 start_time = time.time()
+LOCK = threading.Lock()
 
 exam_questions = random.sample(questions, 3)
 
@@ -160,3 +219,27 @@ for e in examiners:
 
 for t in threads:
     t.join()
+
+print(f"{'Студент':<15} {'Статус':<10}")
+for s in students:
+    print(f"{s.name:<10} {s.status:<10}")
+
+print(f"{'Экзаменатор':<15} {'Всего студентов':<10} {'Завалил':<10} {'Время работы':<10}")
+for e in examiners:
+    print(f"{e.name:<20} {e.students_handled:<13} {e.failed:<10} {e.work_time:<10.2f}")
+
+def best_student():
+    best_time = []
+    for e in examiners:
+        best_time.append(e.work_time)
+    answer = min(best_time)
+    return answer 
+
+def best_Examiner():
+    for e in examiners:
+        if e.students_handled => e.student_handled
+        
+    
+
+print(f"Время с момента начала экзамена и до момента и его завершения:{s.exam_time}")
+print(f"Имена лучших студентов:{best_student}")
