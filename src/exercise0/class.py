@@ -232,14 +232,18 @@ def best_student():
     best_time = []
     for e in examiners:
         best_time.append(e.work_time)
-    answer = min(best_time)
+    answer = min(best_time) # имя студента нада а не время
     return answer 
 
 def best_Examiner():
+    proc_fail_dict = {}
     for e in examiners:
-        if e.students_handled => e.student_handled
-        
+        proc_fail_dict[e] = (e.failed*100)/e.students_handled
     
-
+    for key, value in proc_fail_dict.items():
+        if value == min(proc_fail_dict.values()):
+            print(key)
+    
+best_Examiner()
 print(f"Время с момента начала экзамена и до момента и его завершения:{s.exam_time}")
 print(f"Имена лучших студентов:{best_student}")
