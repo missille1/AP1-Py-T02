@@ -202,6 +202,7 @@ examiners = read_examiners("examiners.txt")
 students = read_students("students.txt")
 questions = read_questions("questions.txt")
 start_time = time.time()
+global_start = time.time()
 LOCK = threading.Lock()
 
 exam_questions = random.sample(questions, 3)
@@ -229,21 +230,26 @@ for e in examiners:
     print(f"{e.name:<20} {e.students_handled:<13} {e.failed:<10} {e.work_time:<10.2f}")
 
 def best_student():
-    best_time = []
-    for e in examiners:
+    exam_time_dict = {}
+    for e in students:
         best_time.append(e.work_time)
     answer = min(best_time) # имя студента нада а не время
     return answer 
 
-def best_Examiner():
+def best_examiner_names():
     proc_fail_dict = {}
     for e in examiners:
         proc_fail_dict[e] = (e.failed*100)/e.students_handled
-    
+    best_examiner_names = []
     for key, value in proc_fail_dict.items():
         if value == min(proc_fail_dict.values()):
-            print(key)
-    
-best_Examiner()
-print(f"Время с момента начала экзамена и до момента и его завершения:{s.exam_time}")
+            best_examiner_names.append(key.name)
+    return ", ".join(best_examiner_names)
+
+total_time = time.time() - start_time
+print("___")
+# best_examiner()
+print("___")      
+print(f"Время с момента начала экзамена и до момента и его завершения:{total_time:.2f}")
 print(f"Имена лучших студентов:{best_student}")
+print(f"Имя лучших экзаменаторов:{best_examiner_names()}")
