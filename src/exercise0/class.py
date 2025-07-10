@@ -33,6 +33,18 @@ class Student():
         # print(save_word)
         return save_word
 
+class Question:
+    def __init__(self, text):
+        self.text = text.strip()  # удаление пробелов
+        self.correct_count = 0
+
+    def get_words(self):
+        return self.text.split()
+
+    def __repr__(self):
+        return f"Question({self.text})"
+
+
 class Examiner:
     def __init__(self, name, gender):
         self.name = name
@@ -65,7 +77,7 @@ class Examiner:
                     flag = False
         return all_correct_answer
     
-    def evaluate(self, student_answer, correct_answers): # evaluate - оценивать
+    def evaluate(self, student_answer, correct_answers, questions): # evaluate - оценивать
         mood = random.random()
         ex_passed = True
         if mood <= 1/8:
@@ -73,9 +85,10 @@ class Examiner:
         if mood >= 1/8 and mood <= 5/8:
             correct = 0
             wrong = 0
-            for student_word, correct_list in zip(student_answer, correct_answers):
+            for student_word, correct_list, q in zip(student_answer, correct_answers, questions):
                 if student_word in correct_list:
                     correct += 1
+                    q.correct_count += 1
                 else:
                     wrong += 1
             if correct >= wrong:
@@ -86,7 +99,7 @@ class Examiner:
              ex_passed = True
         return ex_passed
     
-    def run_exam(self, student_queue: Queue, start_time: float):
+    def run_exam(self, student_queue: Queue, start_time: float, exam_questions: list[Question]):
         done = False
         while not done:
             student = None
@@ -116,7 +129,7 @@ class Examiner:
                 duration = random.uniform(l - 1, l + 1)
                 time.sleep(duration)
 
-                ex_passed = self.evaluate(student_answer, correct_answers)
+                ex_passed = self.evaluate(student_answer, correct_answers, exam_questions)
 
                 exam_time = time.time() - start_exam
                 student.exam_time = exam_time
@@ -170,16 +183,6 @@ class Examiner:
     #                 self.failed += 1
     #             self.work_time += duration 
 
-class Question:
-    def __init__(self, text):
-        self.text = text.strip()  # удаление пробелов
-
-    def get_words(self):
-        return self.text.split()
-
-    def __repr__(self):
-        return f"Question({self.text})"
-
 
 def read_examiners(path):
     with open(path, encoding="utf-8") as f:
@@ -214,7 +217,7 @@ for s in students:
 
 threads = []
 for e in examiners:
-    t = threading.Thread(target = e.run_exam, args=(student_queue, start_time))
+    t = threading.Thread(target = e.run_exam, args=(student_queue, start_time, exam_questions))
     t.start()
     threads.append(t)
 
@@ -230,11 +233,28 @@ for e in examiners:
     print(f"{e.name:<20} {e.students_handled:<13} {e.failed:<10} {e.work_time:<10.2f}")
 
 def best_student():
-    exam_time_dict = {}
-    for e in students:
-        best_time.append(e.work_time)
-    answer = min(best_time) # имя студента нада а не время
-    return answer 
+    best_student_dict = {}
+    best_student_list = []
+    for s in students:
+        if s.status == "Сдал":
+            best_student_dict[s] = s.exam_time
+            print(f"{s.name}: {s.exam_time:.2f}")
+    for key, value in best_student_dict.items():
+        if value == min(best_student_dict.values()):
+            best_student_list.append(key.name)
+    return ", ".join(best_student_list)
+
+def student_expelled():
+    student_expelled_dict = {}
+    student_expelled_list = []
+    for s in students:
+        if s.status == "Провалил":
+            student_expelled_dict[s] = s.exam_time
+            print(f"{s.name}: {s.exam_time:.2f}")
+    for key, value in student_expelled_dict.items():
+        if value == min(student_expelled_dict.values()):
+            student_expelled_list.append(key.name)
+    return ", ".join(student_expelled_list) 
 
 def best_examiner_names():
     proc_fail_dict = {}
@@ -246,10 +266,47 @@ def best_examiner_names():
             best_examiner_names.append(key.name)
     return ", ".join(best_examiner_names)
 
+def best_questions():
+    best = []
+    max_count = max(q.correct_count for q in questions)
+    for q in questions:
+        if q.correct_count == max_count:
+            best.append(q.text)
+            # print(f"{q.text} — {q.correct_count} правильных ответов")
+    return ", ".join(best)
+
+def exam_status():
+    good = 0
+    bad = 0
+    for s in students:
+        if s.status == "Сдал":
+            good += 1
+        else:
+            bad += 1
+    if good/(good + bad)*100 > 85:
+        ex_passed = "экзамен удался"
+    else:
+        ex_passed = "экзамен не удался"
+    return ex_passed
+
+def draw_state(students, examiners, student_queue, start_time):
+    queue_names = set(s.name for s in list(student_queue.queue))
+    queued = [s for name in queue_names for s in students if s.name == name] # ищем тех кто в очереди и сравниваем со всем списком
+    passed = [s for s in students if s.status == "Сдал"]
+    failed = [s for s in students if s.status == "Провалил"]
+
+    sorted_students = queued + passed + failed
+    return sorted_students
+
+print('ЭТО КАКОЕ-ТО ДЕКАДАНСТВО')
+
 total_time = time.time() - start_time
 print("___")
 # best_examiner()
 print("___")      
 print(f"Время с момента начала экзамена и до момента и его завершения:{total_time:.2f}")
-print(f"Имена лучших студентов:{best_student}")
+print(f"Имена лучших студентов:{best_student()}")
 print(f"Имя лучших экзаменаторов:{best_examiner_names()}")
+print(f"Имена студентов, которых после экзамена отчислят:{student_expelled()}")
+print(f"Лучшие вопросы:{best_questions()}")
+print(f"Вывод:{exam_status()}")
