@@ -27,13 +27,10 @@ class Student():
             weight = remaining / z
             weight_bd.append(weight)
             remaining = remaining - weight
-        # print(sum(weight_bd))
         if self.gender == 'М':
             save_word = random.choices(words, weight_bd)
         else:
-            # print('girl')
             save_word = random.choices(words, list(reversed(weight_bd)))
-        # print(save_word)
         return save_word
 
 class Question:
@@ -154,44 +151,6 @@ class Examiner:
                 self.current_student = "-"
 
 
-    # def run_exam(self, student_queue: Queue, start_time: float):
-    #     done = False
-    #     while not done:
-    #         student = None
-    #         LOCK.acquire()
-    #         if not student_queue.empty():
-    #             student = student_queue.get_nowait()
-    #         LOCK.release()
-    #         done = student is None
-    #         start_exam = time.time()
-    #         if not done and student:
-    #             elapsed = time.time() - start_time
-    #             if not self.on_lunch and elapsed > 30:
-    #                 self.on_lunch = True
-    #                 print(f"{self.name} уходит на обед...")
-    #                 time.sleep(random.uniform(12, 18))
-    #             student_answer = []
-    #             correct_answers = []
-    #             for q in exam_questions:
-    #                 answer = student.choose_answer(q)[0]
-    #                 student_answer.append(answer)
-    #                 correct_answers.append(self.choose_question(q))
-    #                 exam_time = time.time() - start_exam
-    #                 self.work_time += exam_time
-    #             ex_passed = self.evaluate(student_answer, correct_answers)
-    #             # duration = random.uniform(5, 7) + len(self.name)
-    #             duration = random.uniform(5, 7) * (1 + len(e.name)/10)
-    #             time.sleep(duration)
-    #             print(student_answer)
-    #             print(correct_answers)
-    #             print(ex_passed)
-    #             print(f"{self.name} закончил экзамен с {student.name}")
-    #             self.students_handled += 1
-    #             if not ex_passed:
-    #                 self.failed += 1
-    #             self.work_time += duration 
-
-
 def read_examiners(path):
     with open(path, encoding="utf-8") as f:
         tokens = f.read().split()
@@ -226,17 +185,13 @@ def draw_state(students, examiners, student_queue, start_time, original_order):
     
     student1_table = PrettyTable()
     student1_table.field_names = ["Студент", "Статус"]
-    # print(f"{'Студент':<15} {'Статус':<10}")
     for s in sorted_students:
-        # print(f"{s.name:<15} {s.status:<10}")
         student1_table.add_row([s.name, s.status])
     print(student1_table)
 
     examiner1_table = PrettyTable()
     examiner1_table.field_names = ["Экзаменатор", "Текущий студент", "Всего студентов", "Завалил", "Время работы"]
-    # print(f"{'Экзаменатор':<15} {'Текущий студент':<10} {'Всего студентов':<10} {'Завалил':<10} {'Время работы':<10}")
     for e in examiners:
-        # print(f"{e.name:<20} {e.current_student:<13} {e.students_handled:<13} {e.failed:<10} {e.work_time:<10.2f}")
         examiner1_table.add_row([e.name, e.current_student, e.students_handled, e.failed, f"{e.work_time:<10.2f}"])
     print(examiner1_table)
     print(f"Осталось в очереди: {len([s for s in students if s.status == 'Очередь'])} из {len(students)}")
@@ -247,7 +202,7 @@ def draw_state(students, examiners, student_queue, start_time, original_order):
 def update_display():
     while not exam_finished:
         draw_state(students, examiners, student_queue, start_time, original_order)
-        time.sleep(0.5)
+        time.sleep(0.2)
 
 def best_student():
     best_student_dict = {}
@@ -267,7 +222,7 @@ def student_expelled():
     for s in students:
         if s.status == "Провалил":
             student_expelled_dict[s] = s.exam_time
-            print(f"{s.name}: {s.exam_time:.2f}")
+            # print(f"{s.name}: {s.exam_time:.2f}")
     for key, value in student_expelled_dict.items():
         if value == min(student_expelled_dict.values()):
             student_expelled_list.append(key.name)
@@ -312,8 +267,8 @@ students = read_students("students.txt")
 questions = read_questions("questions.txt")
 start_time = time.time()
 global_start = time.time()
-LOCK = threading.Lock()
 exam_finished = False
+LOCK = threading.Lock()
 exam_questions = random.sample(questions, 3)
 
 student_queue = Queue()
@@ -352,19 +307,14 @@ print(student_table)
 
 examiner_table = PrettyTable()
 examiner_table.field_names = ["Экзаменатор", "Всего студентов", "Завалил", "Время работы"]
-# print(f"{'Экзаменатор':<15} {'Всего студентов':<10} {'Завалил':<10} {'Время работы':<10}")
 for e in examiners:
-    # print(f"{e.name:<20} {e.students_handled:<13} {e.failed:<10} {e.work_time:<10.2f}")
     examiner_table.add_row([e.name, e.students_handled, e.failed, f"{e.work_time:.2f}"])
 print(examiner_table)
 
-total_time = time.time() - start_time
-# print("___")
-# # best_examiner()
-# print("___")      
-print(f"Время с момента начала экзамена и до момента и его завершения:{total_time:.2f}")
-print(f"Имена лучших студентов:{best_student()}")
-print(f"Имя лучших экзаменаторов:{best_examiner_names()}")
-print(f"Имена студентов, которых после экзамена отчислят:{student_expelled()}")
-print(f"Лучшие вопросы:{best_questions()}")
-print(f"Вывод:{exam_status()}")
+total_time = time.time() - start_time   
+print(f"Время с момента начала экзамена и до момента и его завершения: {total_time:.2f}")
+print(f"Имена лучших студентов: {best_student()}")
+print(f"Имя лучших экзаменаторов: {best_examiner_names()}")
+print(f"Имена студентов, которых после экзамена отчислят: {student_expelled()}")
+print(f"Лучшие вопросы: {best_questions()}")
+print(f"Вывод: {exam_status()}")
