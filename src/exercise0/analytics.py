@@ -1,6 +1,6 @@
-from main 
+from models.entities import Student, Examiner, Question
 
-def best_student():
+def best_student(students: list[Student]) -> str:
     best_student_dict = {}
     best_student_list = []
     for s in students:
@@ -12,7 +12,7 @@ def best_student():
             best_student_list.append(key.name)
     return ", ".join(best_student_list)
 
-def student_expelled():
+def student_expelled(students: list[Student]) -> str:
     student_expelled_dict = {}
     student_expelled_list = []
     for s in students:
@@ -24,7 +24,7 @@ def student_expelled():
             student_expelled_list.append(key.name)
     return ", ".join(student_expelled_list) 
 
-def best_examiner_names():
+def best_examiner_names(examiners: list[Examiner]) -> str:
     proc_fail_dict = {}
     for e in examiners:
         if e.students_handled > 0:
@@ -35,7 +35,7 @@ def best_examiner_names():
             best_examiner_names.append(key.name)
     return ", ".join(best_examiner_names)
 
-def best_questions():
+def best_questions(questions: list[Question]) -> str:
     best = []
     max_count = max(q.correct_count for q in questions)
     for q in questions:
@@ -44,7 +44,7 @@ def best_questions():
             # print(f"{q.text} — {q.correct_count} правильных ответов")
     return ", ".join(best)
 
-def exam_status():
+def exam_status(students: list[Student]) -> str:
     good = 0
     bad = 0
     for s in students:

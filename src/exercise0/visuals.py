@@ -1,4 +1,6 @@
 import os
+import time
+from prettytable import PrettyTable
 
 def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -6,7 +8,7 @@ def clear_console():
 def draw_state(students, examiners, student_queue, start_time, original_order):
     clear_console()
     queue_students = list(student_queue.queue)
-    queue_names = [s.name for s in queue_students]
+    # queue_names = [s.name for s in queue_students]
 
     queued = queue_students
 
@@ -32,7 +34,8 @@ def draw_state(students, examiners, student_queue, start_time, original_order):
     
     return sorted_students
 
-def update_display():
-    while not exam_finished:
+def update_display(students, examiners, student_queue, start_time, original_order, exam_finished_event):
+    while not exam_finished_event.is_set():
         draw_state(students, examiners, student_queue, start_time, original_order)
         time.sleep(0.2)
+        # time.sleep(3000000)
