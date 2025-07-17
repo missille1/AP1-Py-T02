@@ -34,6 +34,7 @@ def main():
     questions = read_questions("questions.txt")
     start_time = time.time()
     exam_finished_event = threading.Event() # устанавливаем TRUE пока идет экзамен
+    # Создаем объект блокировки
     LOCK = threading.Lock()
     exam_questions = random.sample(questions, 3)
 
@@ -46,12 +47,13 @@ def main():
     display_thread = threading.Thread(target=update_display, 
                                       args=(students, examiners, student_queue, start_time, original_order, exam_finished_event))
     display_thread.start()
-
+    # Создание и запуск потоков для вызова функции 
     threads = []
     for e in examiners:
         t = threading.Thread(target = run_exam, args=(e, student_queue, start_time, exam_questions, LOCK, exam_finished_event))
         t.start()
         threads.append(t)
+    # Ожидание завершения всех потоков
     for t in threads:
         t.join()
     exam_finished_event.set()
