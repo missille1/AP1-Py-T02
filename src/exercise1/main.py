@@ -15,9 +15,12 @@
 from requests import get
 import os
 import sys
+import aiohttp
+import asyncio
 
 def create_folder():
     done = True
+    path = None
     while done:
         path = input()
         if '..' in path:
@@ -26,29 +29,45 @@ def create_folder():
         if not os.path.exists(path):
             try:
                 os.makedirs(path, mode=0o770)
-                return path
+                done = False
             except: 
                 print("Не удалось создать папку, попробуйте еще раз")
         elif not os.access(path, os.W_OK):
             print("Недостаточно прав")
         else:
             done = False
-    
-def download_file(path):
-    file_path = os.path.join(path, 'test.jpg')
-    try:
-        while True:
-            link = input()
-            if link 
+    return path
+
+def collect_links():
+    link = None
+    urls = []
+    done = True
+    counter_links = 0
+    while done:
+        link = input().strip() 
+        if link == '':
+            done = False
+        else:
+            urls.append(link)
+            counter_links += 1
+            print(f"Добавлено ссылок: {counter_links}")
+    return urls
+
+def download_file(path, urls):
+    counter_bad_link = 0
+    for i, u in enumerate(urls):
+        try:
+            file_path = os.path.join(path, f"img_{i+1}.jpg") 
             with open(file_path, 'wb') as f:
-                f.write(get(link).content)
-    except:
-        link = '\n'
+                f.write(get(u).content)
+        except:
+            counter_bad_link += 1 
 
 def main():
     # os.system('cls' if os.name == 'nt' else 'clear')
     path = create_folder()
-    download_file(path)
+    urls = collect_links()
+    download_file(path, urls)
 
 if __name__=="__main__":
     main()
