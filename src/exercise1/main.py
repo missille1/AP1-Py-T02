@@ -53,15 +53,27 @@ def collect_links():
             print(f"Добавлено ссылок: {counter_links}")
     return urls
 
-def download_file(path, urls):
-    counter_bad_link = 0
-    for i, u in enumerate(urls):
-        try:
+async def download_one_image(session, urls, i, path, successes, failures):
+    try:
+        async with session.get(urls) as resp:
+            content = await resp.read()
             file_path = os.path.join(path, f"img_{i+1}.jpg") 
             with open(file_path, 'wb') as f:
                 f.write(get(u).content)
-        except:
-            counter_bad_link += 1 
+            successes.append(urls)
+    except Exception as e:
+            failures.append((urls, str(e)))
+
+asyc def download_all_images(path, urls):
+    successes = []
+    failures = []
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for i, u in enumerate(urls):
+            task = asyncio.create_task(download_one_image(session, urls, i, path, successes, failures))
+            tasks.append(task)
+        await asyncio.gather(*tasks)
+    return successes, failures
 
 def main():
     # os.system('cls' if os.name == 'nt' else 'clear')
