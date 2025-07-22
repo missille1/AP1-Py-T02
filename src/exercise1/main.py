@@ -59,12 +59,12 @@ async def download_one_image(session, urls, i, path, successes, failures):
             content = await resp.read()
             file_path = os.path.join(path, f"img_{i+1}.jpg") 
             with open(file_path, 'wb') as f:
-                f.write(get(u).content)
+                f.write(get(urls).content)
             successes.append(urls)
     except Exception as e:
             failures.append((urls, str(e)))
 
-asyc def download_all_images(path, urls):
+async def download_all_images(path, urls):
     successes = []
     failures = []
     async with aiohttp.ClientSession() as session:
@@ -79,7 +79,13 @@ def main():
     # os.system('cls' if os.name == 'nt' else 'clear')
     path = create_folder()
     urls = collect_links()
-    download_file(path, urls)
+    successes, failures = asyncio.run(download_all_images(path, urls))
+    print("\nУспешные загрузки:")
+    for url in successes:
+        print (url)
+    print("\nОшибки:")
+    for url, err in failures:
+        print(f"{url} - {err}")
 
 if __name__=="__main__":
     main()
