@@ -1,17 +1,3 @@
-# Необходимо решить с задачу с применением мультипарадигмального подхода.
-# Для написания асинхронного обработчика ссылок используй библиотеку `asyncio`.
-# Сам процесс скачивания изображения можно реализовать при помощи библиотеки `requests`, в которой функция 
-# `get` позволяет получить изображение с сервера по ссылке. Полученный ответ необходимо записать в файл по байтам.
-
-# ```python
-# from requests import get
-
-# with open('test.jpg', 'wb') as f:
-#     f.write(get('https://images2.pics4learning.com/catalog/s/swamp_15.jpg').content)
-
-# Дополнительно потребуется обработать ошибки, которые могут возникнуть во время выполнения запроса. Для этого следует проверить `status_code`
-# у объекта, который возвращается функцией `get`. Проверь, указан корректный путь или нет, можно, попытавшись сохранить туда что-либо.
-# Исключение `PermissionError` вызывается в случае, если нет доступа по указанному пути.
 from requests import get
 import os
 import sys
@@ -28,11 +14,11 @@ def create_folder():
             print("Вы можете создать папку только в папке src/")
             continue
         if not os.path.exists(path):
-                os.makedirs(path, mode=0o770)
-                if os.path.exists(path):
-                    done = False
-                else:
-                    print("Не удалось создать папку, попробуйте еще раз")
+            os.makedirs(path, mode=0o770)
+            if os.path.exists(path):
+                done = False
+            else:
+                print("Не удалось создать папку, попробуйте еще раз")
         elif not os.access(path, os.W_OK):
             print("Недостаточно прав")
         else:
@@ -60,13 +46,13 @@ async def download_one_image(session, u, i, path, successes, failures):
     file_path = os.path.join(path, f"img_{i+1}.jpg") 
     
     try:
-        resp =  await session.get(u) #  асинхронный HTTP‑запрос к адресу файл + статус ответа
+        resp = await session.get(u)  # асинхронный HTTP‑запрос
     except aiohttp.ClientError:
         failures.append((u, "Ошибка скачивания"))
         done = False
         resp = None
 
-    if done and resp is not None and resp.status != 200 :
+    if done and resp is not None and resp.status != 200:
         failures.append((u, f"HTTP {resp.status}"))
         done = False
 
@@ -77,18 +63,21 @@ async def download_one_image(session, u, i, path, successes, failures):
             failures.append((u, "Нет данных для записи"))
             done = False
 
+    # Блок записи с обработкой PermissionError
     if done and content is not None:
-        f = open(file_path, 'wb')
-        written = f.write(content)
-        f.close()
-        if written == 0:
-            failures.append((u, "Не удалось записать файл"))
+        try:
+            f = open(file_path, 'wb')
+            written = f.write(content)
+            f.close()
+            if written == 0:
+                failures.append((u, "Не удалось записать файл"))
+                done = False
+        except PermissionError:
+            failures.append((u, "Нет прав на запись в каталог"))
             done = False
 
     if done:
         successes.append(u)
-    
-    print(resp)
 
 async def download_all_images(path, urls):
     successes = []
@@ -102,16 +91,15 @@ async def download_all_images(path, urls):
     return successes, failures
 
 def main():
-    # os.system('cls' if os.name == 'nt' else 'clear')
     path = create_folder()
     urls = collect_links()
     successes, failures = asyncio.run(download_all_images(path, urls))
     print("\nУспешные загрузки:")
     for url in successes:
-        print (url)
+        print(url)
     print("\nОшибки:")
     for url, err in failures:
         print(f"{url} - {err}")
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
