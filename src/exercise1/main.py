@@ -53,16 +53,35 @@ def collect_links():
             print(f"Добавлено ссылок: {counter_links}")
     return urls
 
-async def download_one_image(session, urls, i, path, successes, failures):
-    try:
-        async with session.get(urls) as resp:
-            content = await resp.read()
-            file_path = os.path.join(path, f"img_{i+1}.jpg") 
-            with open(file_path, 'wb') as f:
-                f.write(get(urls).content)
-            successes.append(urls)
-    except Exception as e:
-            failures.append((urls, str(e)))
+async def download_one_image(session, u, i, path, successes, failures):
+    done = True
+    resp = None
+    content = None
+    file_path = os.path.join(path, f"img_{i+1}.jpg") 
+    
+    resp =  await session.get(u)
+    if resp.status != 200:
+        failures.append((u, f"HTTP {resp.status}"))
+        done = False
+
+    if done:
+        content = await resp.read()
+        if content is None: 
+            failures.append((u, "Нет данных для записи"))
+            done = False
+        else:
+            f = open(file_path, 'wb')
+            written = f.write(content)
+            f.close()
+            if written == 0:
+                failures.append((u, "Не удалось записать файл"))
+                done = False
+        # file_path = os.path.join(path, f"img_{i+1}.jpg") 
+        # with open(file_path, 'wb') as f:
+            # f.write((u).content)
+        # successes.append(u)
+    if done:
+        successes.append(u)
 
 async def download_all_images(path, urls):
     successes = []
@@ -70,7 +89,7 @@ async def download_all_images(path, urls):
     async with aiohttp.ClientSession() as session:
         tasks = []
         for i, u in enumerate(urls):
-            task = asyncio.create_task(download_one_image(session, urls, i, path, successes, failures))
+            task = asyncio.create_task(download_one_image(session, u, i, path, successes, failures))
             tasks.append(task)
         await asyncio.gather(*tasks)
     return successes, failures
