@@ -12,9 +12,7 @@
 # Дополнительно потребуется обработать ошибки, которые могут возникнуть во время выполнения запроса. Для этого следует проверить `status_code`
 # у объекта, который возвращается функцией `get`. Проверь, указан корректный путь или нет, можно, попытавшись сохранить туда что-либо.
 # Исключение `PermissionError` вызывается в случае, если нет доступа по указанному пути.
-from requests import get
 import os
-import sys
 import aiohttp
 import asyncio
 
@@ -39,24 +37,10 @@ def create_folder():
             done = False
     return path
 
-def collect_links():
-    link = None
-    urls = []
-    done = True
-    counter_links = 0
-    while done:
-        link = input().strip() 
-        if link == '':
-            done = False
-        else:
-            urls.append(link)
-            counter_links += 1
-            print(f"Добавлено ссылок: {counter_links}")
-    return urls
-
 async def download_one_image(session, u, i, path, successes, failures):
     done = True
     content = None
+    resp = None
     file_path = os.path.join(path, f"img_{i+1}.jpg") 
     
     try:
@@ -90,22 +74,36 @@ async def download_one_image(session, u, i, path, successes, failures):
     
     print(resp)
 
-async def download_all_images(path, urls):
-    successes = []
-    failures = []
-    async with aiohttp.ClientSession() as session:
-        tasks = []
-        for i, u in enumerate(urls):
-            task = asyncio.create_task(download_one_image(session, u, i, path, successes, failures))
-            tasks.append(task)
-        await asyncio.gather(*tasks)
+async def collect_links(session, path, successes, failures):
+    link = None
+    tasks = []
+    done = True
+    i = 0
+    counter_links = 0
+    
+    while done:
+        link = await asyncio.to_thread(input)
+        if link == '':
+            done = False
+        else:
+            urls.append(link)
+            async with aiohttp.ClientSession() as session:
+                tasks = []
+                for i, u in enumerate(urls):
+                    task = asyncio.create_task(download_one_image(session, u, i, path, successes, failures))
+                    tasks.append(task)
+                    counter_links += 1
+                    print(f"Добавлено ссылок: {counter_links}")
+            if tasks:
+                await asyncio.gather(*tasks)
     return successes, failures
 
 def main():
     # os.system('cls' if os.name == 'nt' else 'clear')
+    successes = []
+    failures = []
     path = create_folder()
-    urls = collect_links()
-    successes, failures = asyncio.run(download_all_images(path, urls))
+    successes, failures = asyncio.run(collect_links(session, path, successes, failures))
     print("\nУспешные загрузки:")
     for url in successes:
         print (url)
