@@ -15,6 +15,7 @@
 import os
 import aiohttp
 import asyncio
+from prettytable import PrettyTable
 
 def create_folder():
     done = True
@@ -37,7 +38,7 @@ def create_folder():
             done = False
     return path
 
-async def download_one_image(session, u, i, path, successes, failures):
+async def download_one_image(session, u, i, path, result):
     done = True
     content = None
     resp = None
@@ -46,19 +47,19 @@ async def download_one_image(session, u, i, path, successes, failures):
     try:
         resp =  await session.get(u) #  асинхронный HTTP‑запрос к адресу файл + статус ответа
     except aiohttp.ClientError:
-        failures.append((u, "Ошибка скачивания"))
+        result.append((u, "Ошибка скачивания"))
         done = False
         resp = None
 
     if done and resp is not None and resp.status != 200 :
-        failures.append((u, f"HTTP {resp.status}"))
+        result.append((u, f"HTTP {resp.status}"))
         done = False
 
     if done and resp is not None:
         content = await resp.read()
         content_type = resp.headers.get("Content-Type", "")
         if not content or not content_type.startswith("image/"): 
-            failures.append((u, "Нет данных для записи"))
+            result.append((u, "Нет данных для записи"))
             done = False
 
     if done and content is not None:
@@ -66,50 +67,58 @@ async def download_one_image(session, u, i, path, successes, failures):
         written = f.write(content)
         f.close()
         if written == 0:
-            failures.append((u, "Не удалось записать файл"))
+            result.append((u, "Не удалось записать файл"))
             done = False
 
     if done:
-        successes.append(u)
+        result.append(u)
     
     print(resp)
 
-async def collect_links(session, path, successes, failures):
+async def collect_links(path, result):
     link = None
     tasks = []
     done = True
     i = 0
     counter_links = 0
     
-    while done:
-        link = await asyncio.to_thread(input)
-        if link == '':
-            done = False
-        else:
-            urls.append(link)
-            async with aiohttp.ClientSession() as session:
-                tasks = []
-                for i, u in enumerate(urls):
-                    task = asyncio.create_task(download_one_image(session, u, i, path, successes, failures))
-                    tasks.append(task)
-                    counter_links += 1
-                    print(f"Добавлено ссылок: {counter_links}")
-            if tasks:
-                await asyncio.gather(*tasks)
-    return successes, failures
+    async with aiohttp.ClientSession() as session:
+        while done:
+            link = (await asyncio.to_thread(input)).strip()
+            if link == '':
+                done = False
+            else:
+                tasks.append(asyncio.create_task(
+                    download_one_image(session, link, i, path, result)))
+                i += 1
+                counter_links += 1
+                print(f"Добавлено ссылок: {counter_links}")    
+        if tasks:
+            await asyncio.gather(*tasks)
+    return result
 
 def main():
     # os.system('cls' if os.name == 'nt' else 'clear')
-    successes = []
-    failures = []
+    result = []
     path = create_folder()
-    successes, failures = asyncio.run(collect_links(session, path, successes, failures))
-    print("\nУспешные загрузки:")
-    for url in successes:
-        print (url)
-    print("\nОшибки:")
-    for url, err in failures:
+    result = asyncio.run(collect_links(path, result))
+    
+    
+    status_table = PrettyTable()
+    status_table.field_names = ["Ссылка", "Статус"]
+    # print("\nУспешные загрузки:")
+    for url, err in successes, failures:
+        status_table.add_row((url))
         print(f"{url} - {err}")
+    # print("\nОшибки:")
+    # for url, err in failures:
+    #     print(f"{url} - {err}")
+
+
+    # for e in examiners:
+    #     examiner1_table.add_row([e.name, e.current_student, e.students_handled, e.failed, f"{e.work_time:<10.2f}"])
+    # print(examiner1_table)
+
 
 if __name__=="__main__":
     main()
