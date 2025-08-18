@@ -1,17 +1,3 @@
-# Необходимо решить с задачу с применением мультипарадигмального подхода.
-# Для написания асинхронного обработчика ссылок используй библиотеку `asyncio`.
-# Сам процесс скачивания изображения можно реализовать при помощи библиотеки `requests`, в которой функция 
-# `get` позволяет получить изображение с сервера по ссылке. Полученный ответ необходимо записать в файл по байтам.
-
-# ```python
-# from requests import get
-
-# with open('test.jpg', 'wb') as f:
-#     f.write(get('https://images2.pics4learning.com/catalog/s/swamp_15.jpg').content)
-
-# Дополнительно потребуется обработать ошибки, которые могут возникнуть во время выполнения запроса. Для этого следует проверить `status_code`
-# у объекта, который возвращается функцией `get`. Проверь, указан корректный путь или нет, можно, попытавшись сохранить туда что-либо.
-# Исключение `PermissionError` вызывается в случае, если нет доступа по указанному пути.
 import os
 import aiohttp
 import asyncio
@@ -47,19 +33,19 @@ async def download_one_image(session, u, i, path, result):
     try:
         resp =  await session.get(u) #  асинхронный HTTP‑запрос к адресу файл + статус ответа
     except aiohttp.ClientError:
-        result.append((u, "Ошибка скачивания"))
+        result.append((i, u, "Ошибка"))
         done = False
         resp = None
 
     if done and resp is not None and resp.status != 200 :
-        result.append((u, f"HTTP {resp.status}"))
+        result.append((i, u, "Ошибка"))
         done = False
 
     if done and resp is not None:
         content = await resp.read()
         content_type = resp.headers.get("Content-Type", "")
         if not content or not content_type.startswith("image/"): 
-            result.append((u, "Нет данных для записи"))
+            result.append((i, u, "Ошибка"))
             done = False
 
     if done and content is not None:
@@ -67,20 +53,17 @@ async def download_one_image(session, u, i, path, result):
         written = f.write(content)
         f.close()
         if written == 0:
-            result.append((u, "Не удалось записать файл"))
+            result.append((i, u, "Ошибка"))
             done = False
 
     if done:
-        result.append(u)
-    
-    print(resp)
+        result.append((i, u, "Успех"))
 
 async def collect_links(path, result):
     link = None
     tasks = []
     done = True
     i = 0
-    counter_links = 0
     
     async with aiohttp.ClientSession() as session:
         while done:
@@ -90,35 +73,28 @@ async def collect_links(path, result):
             else:
                 tasks.append(asyncio.create_task(
                     download_one_image(session, link, i, path, result)))
-                i += 1
-                counter_links += 1
-                print(f"Добавлено ссылок: {counter_links}")    
+                i += 1   
         if tasks:
             await asyncio.gather(*tasks)
     return result
 
+def print_results(results):
+    # вернуть исходный порядок ввода
+    results.sort(key=lambda x: x[0]) # сортировка по первому элементу
+    table = PrettyTable()
+    table.field_names = ["Ссылка", "Статус"]
+    # выравнивание по левому краю
+    table.align["Ссылка"] = "l"
+    for _, url, status in results:
+        table.add_row([url, status])
+    print(table)
+
 def main():
-    # os.system('cls' if os.name == 'nt' else 'clear')
     result = []
     path = create_folder()
     result = asyncio.run(collect_links(path, result))
     
-    
-    status_table = PrettyTable()
-    status_table.field_names = ["Ссылка", "Статус"]
-    # print("\nУспешные загрузки:")
-    for url, err in successes, failures:
-        status_table.add_row((url))
-        print(f"{url} - {err}")
-    # print("\nОшибки:")
-    # for url, err in failures:
-    #     print(f"{url} - {err}")
-
-
-    # for e in examiners:
-    #     examiner1_table.add_row([e.name, e.current_student, e.students_handled, e.failed, f"{e.work_time:<10.2f}"])
-    # print(examiner1_table)
-
+    print_results(result)
 
 if __name__=="__main__":
     main()
